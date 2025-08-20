@@ -60,11 +60,6 @@ public:
 
 		memcpy_s(NewData, sizeof(T) * NewCapacity, data, sizeof(T) * capacity);
 
-		for (int i = 0; i < size; ++i)
-		{
-			NewData[i] = this->data[i];
-		}
-
 		if (data)
 		{
 			delete[] data;

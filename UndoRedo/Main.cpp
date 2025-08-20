@@ -1,140 +1,254 @@
 #include <iostream>
 #include "Vector.h"
-#include "Stack.h"
+#include "Stack.h" 
 #include "Queue.h"
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
 
-struct UndoRedo
+class Command
 {
 public:
-	UndoRedo()
-		: InputQueue(Queue<char>()), UndoStack(Stack<char>()), RedoStack(Stack<char>())
+	virtual ~Command() {}
+
+	virtual void Execute() = 0;
+	virtual void Undo() = 0;
+	virtual char GetChar() const = 0;
+};
+
+// 입력 문자 관리 클래스
+class InputCommand : public Command
+{
+public:
+	InputCommand(char ch, char* current)
+		: character(ch), currentChar(current), prevChar(*current)
 	{
 	}
 
-	// 문자 입력받기
-	void Input(const char* inputBuffer, char& currentChar)
+	void Execute() override
 	{
-		if (!strcmp(inputBuffer, "undo")) Undo(currentChar);		// undo 수행
-		else if (!strcmp(inputBuffer, "redo")) Redo(currentChar);	// redo 수행
-		else if (!strcmp(inputBuffer, "show")) Show();				// show 수행
+		// 현재 문자를 입력으로 받은 문자로 초기화
+		*currentChar = character;
+	}
 
-		// 문자 입력받기
-		else
+	void Undo() override
+	{
+		// 현재 문자를 이전 입력 문자로 초기화
+		*currentChar = prevChar;
+	}
+
+	char GetChar() const override
+	{
+		// 입력으로 받은 문자 반환
+		return character;
+	}
+
+private:
+	// 입력으로 받은 문자
+	char character;
+
+	// 현재 문자
+	char* currentChar;
+
+	// 이전 입력 문자
+	char prevChar;
+};
+
+// 입력 처리 명령어 실행과 Undo/Redo 관리 클래스
+class CommandManager
+{
+public:
+	CommandManager(char* current) : currentChar(current) {}
+
+	~CommandManager()
+	{
+		// 메모리 정리
+		while (!undoStack.Empty())
 		{
-			// 알파벳 문자가 아니면 반환
-			if (!((inputBuffer[0] >= 65 && inputBuffer[0] <= 90) ||
-				(inputBuffer[0] >= 97 && inputBuffer[0] <= 122)))
-			{
-				std::cout << "잘 못 입력하셨습니다." << "\n\n";
-				return;
-			}
+			delete undoStack.Top();
+			undoStack.Pop();
+		}
 
-			// 입력 큐에 문자 추가
-			InputQueue.Push(inputBuffer[0]);
-
-			// undo 스택에 undo할 문자 추가
-			UndoStack.Push(inputBuffer[0]);
-
-			// 현재 문자 초기화
-			currentChar = UndoStack.Top();
+		while (!redoStack.Empty())
+		{
+			delete redoStack.Top();
+			redoStack.Pop();
 		}
 	}
 
-	void Undo(char& value)
+	void ExecuteCommand(Command* command)
 	{
-		if (UndoStack.Empty())
+		// redo 스택 초기화
+		while (!redoStack.Empty())
 		{
-			return;
+			delete redoStack.Top();
+			redoStack.Pop();
 		}
 
-		// 현재 입력 키 제거
-		UndoStack.Pop();
-
-		// UndoStack이 비어있는 경우
-		if (UndoStack.Empty())
-		{
-			RedoStack.Push(value);
-			value = ' ';
-			return;
-		}
-
-		char saveChar = value;
-
-		value = UndoStack.Top();
-		RedoStack.Push(saveChar);
+		command->Execute();
+		undoStack.Push(command);
 	}
 
-	void Redo(char& value)
+	void Undo()
 	{
-		if (RedoStack.Empty())
-		{
-			return;
-		}
+		if (undoStack.Empty()) return;
 
-		char saveChar = RedoStack.Top();
-		RedoStack.Pop();
+		Command* command = undoStack.Top();
+		undoStack.Pop();
 
-		UndoStack.Push(saveChar);
-		value = saveChar;
+		command->Undo();
+		redoStack.Push(command);
+	}
+
+	void Redo()
+	{
+		if (redoStack.Empty()) return;
+
+		Command* command = redoStack.Top();
+		redoStack.Pop();
+
+		command->Execute();
+		undoStack.Push(command);
 	}
 
 	void Show() const
 	{
-		int undoStackSize = UndoStack.Size();
 		std::cout << "Undo List: ";
-		for (int i = 0; i < undoStackSize - 1; ++i)
+
+		if (undoStack.Empty())
 		{
-			std::cout << UndoStack.GetData()[i] << (i < undoStackSize - 1 ? ", " : "");
+			std::cout << "(비어있음)";
+		}
+		else
+		{
+			int undoStackSize = undoStack.Size();
+
+			for (int i = 0; i < undoStack.Size(); ++i)
+			{
+				std::cout << undoStack.GetData()[i]->GetChar() << (i < undoStackSize - 1 ? ", " : "");
+			}
 		}
 
-		std::cout << " ";
+		std::cout << " | Redo List: ";
 
-		int redoStackSize = RedoStack.Size();
-		std::cout << "Redo List: ";
-		for (int i = 0; i < redoStackSize; ++i)
+		if (redoStack.Empty())
 		{
-			std::cout << RedoStack.GetData()[i] << (i < redoStackSize - 1 ? ", " : "");
+			std::cout << "(비어있음)";
+		}
+		else
+		{
+			int redoStackSize = redoStack.Size();
+
+			for (int i = 0; i < redoStackSize; ++i)
+			{
+				std::cout << redoStack.GetData()[i]->GetChar() << (i < redoStackSize - 1 ? ", " : "");
+			}
 		}
 
 		std::cout << "\n\n";
 	}
 
 private:
-	// 입력 저장
-	Queue<char> InputQueue;
+	// Undo 스택
+	Stack<Command*> undoStack;
 
-	// Undo/Redo 스택
-	Stack<char> UndoStack;
-	Stack<char> RedoStack;
+	// Rndo 스택
+	Stack<Command*> redoStack;
+
+	// 현재 문자
+	char* currentChar;
+};
+
+// UndoRedo 프로그램 클래스
+class UndoRedoProgram
+{
+public:
+	UndoRedoProgram()
+		: currentChar(' ')
+	{
+		commandManager = new CommandManager(&currentChar);
+	}
+
+	~UndoRedoProgram()
+	{
+		delete commandManager;
+	}
+
+	// 유효한 입력 문자인지 확인하는 함수
+	bool IsValidInput(char& ch) const
+	{
+		return (ch == 'A' || ch == 'B' || ch == 'C' || ch == 'D' || ch == 'E');
+	}
+
+	// 입력에 대한 프로세스 수행하는 함수
+	void ProcessInput(const char* input)
+	{
+		if (!strcmp(input, "undo")) commandManager->Undo();			// undo 명령어 실행
+		else if (!strcmp(input, "redo")) commandManager->Redo();	// redo 명령어 실행
+		else if (!strcmp(input, "show")) commandManager->Show();	// show 명령어 실행
+
+		// 입력 문자가 1글자인지 검사
+		else if (strlen(input) == 1)
+		{
+			// 소문자면 대문자로 변환
+			char ch = toupper(input[0]);
+
+			// 유효하지 않은 문자 예외 처리
+			if (!IsValidInput(ch))
+			{
+				std::cout << "잘못된 입력입니다. A, B, C, D, E만 입력하세요." << "\n\n";
+				return;
+			}
+
+			// 입력 큐에 입력 프로세스를 수행할 문자 저장
+			inputQueue.Push(ch);
+
+			// 
+			Command* command = new InputCommand(ch, &currentChar);
+
+			// 해당 문자에 대한 커맨드 실행
+			commandManager->ExecuteCommand(command);
+		}
+		else std::cout << "잘못된 입력입니다. A, B, C, D, E만 입력하세요." << "\n\n";
+	}
+
+	void Run()
+	{
+		while (true)
+		{
+			std::cout << "문자를 입력해 주세요. (A, B, C, D, E) (종료는 '0')" << "\n";
+			std::cout << "명령어: 'undo', 'redo', 'show'" << "\n";
+			std::cout << "현재 문자: " << currentChar << "\n";
+			std::cout << "> ";
+
+			char inputBuffer[100];
+			std::cin >> inputBuffer;
+			system("cls");
+
+			// 0이 입력으로 들어오면 프로그램 종료
+			if (inputBuffer[0] == '0') break;
+
+			// 입력에 대한 프로세스 수행
+			ProcessInput(inputBuffer);
+		}
+	}
+
+private:
+	// 현재 문자
+	char currentChar;
+
+	// 입력 큐
+	Queue<char> inputQueue;
+
+	// 입력 처리 커맨드 
+	CommandManager* commandManager;
 };
 
 int main()
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
-	UndoRedo undoRedo;
-	char currentChar = ' ';
-
-	while (true)
-	{
-		char inputBuffer[100];
-
-		std::cout << "문자를 입력해 주세요. (a ~ Z) (종료는 '0')" << "\n";
-		std::cout << "명령어: 'undo', 'redo', 'show'" << "\n";
-
-		std::cout << "현재 문자: " << currentChar << "\n";
-		std::cout << "> ";
-
-		std::cin >> inputBuffer;
-		system("cls");
-
-		// 0 입력 시, 프로그램(루프) 종료
-		if (inputBuffer[0] == '0') break;
-
-		undoRedo.Input(inputBuffer, currentChar);
-	}
+	UndoRedoProgram program;
+	program.Run();
 }
