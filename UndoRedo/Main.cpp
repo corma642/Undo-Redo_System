@@ -7,55 +7,182 @@
 #include <stdlib.h>
 #include <crtdbg.h>
 
-class Command
+class ICommand
 {
 public:
-	virtual ~Command() {}
+	virtual ~ICommand() {}
 
 	virtual void Execute() = 0;
 	virtual void Undo() = 0;
 	virtual char GetChar() const = 0;
 };
 
-// 입력 문자 관리 클래스
-class InputCommand : public Command
+// A 커맨드
+class CommandA : public ICommand
 {
 public:
-	InputCommand(char ch, char* current)
-		: character(ch), currentChar(current), prevChar(*current)
+	CommandA(char ch, char* curChar)
+		: inputChar(ch), curChar(curChar), prevChar(*curChar)
 	{
 	}
 
+	// 현재 문자를 입력으로 받은 문자로 초기화
 	void Execute() override
 	{
-		// 현재 문자를 입력으로 받은 문자로 초기화
-		*currentChar = character;
+		*curChar = inputChar;
 	}
 
+	// 현재 문자를 이전 입력 문자로 초기화
 	void Undo() override
 	{
-		// 현재 문자를 이전 입력 문자로 초기화
-		*currentChar = prevChar;
+		*curChar = prevChar;
 	}
 
+	// 입력으로 받은 문자 반환
 	char GetChar() const override
 	{
-		// 입력으로 받은 문자 반환
-		return character;
+		return inputChar;
 	}
 
 private:
-	// 입력으로 받은 문자
-	char character;
-
-	// 현재 문자
-	char* currentChar;
-
-	// 이전 입력 문자
-	char prevChar;
+	char inputChar;		// 입력으로 받은 문자
+	char* curChar;		// 현재 문자
+	char prevChar;		// 이전 입력 문자
 };
 
-// 입력 처리 명령어 실행과 Undo/Redo 관리 클래스
+// B 커맨드
+class CommandB : public ICommand
+{
+public:
+	CommandB(char ch, char* curChar)
+		: inputChar(ch), curChar(curChar), prevChar(*curChar)
+	{
+	}
+
+	// 현재 문자를 입력으로 받은 문자로 초기화
+	void Execute() override
+	{
+		*curChar = inputChar;
+	}
+
+	// 현재 문자를 이전 입력 문자로 초기화
+	void Undo() override
+	{
+		*curChar = prevChar;
+	}
+
+	// 입력으로 받은 문자 반환
+	char GetChar() const override
+	{
+		return inputChar;
+	}
+
+private:
+	char inputChar;		// 입력으로 받은 문자
+	char* curChar;		// 현재 문자
+	char prevChar;		// 이전 입력 문자
+};
+
+// C 커맨드
+class CommandC : public ICommand
+{
+public:
+	CommandC(char ch, char* curChar)
+		: inputChar(ch), curChar(curChar), prevChar(*curChar)
+	{
+	}
+
+	// 현재 문자를 입력으로 받은 문자로 초기화
+	void Execute() override
+	{
+		*curChar = inputChar;
+	}
+
+	// 현재 문자를 이전 입력 문자로 초기화
+	void Undo() override
+	{
+		*curChar = prevChar;
+	}
+
+	// 입력으로 받은 문자 반환
+	char GetChar() const override
+	{
+		return inputChar;
+	}
+
+private:
+	char inputChar;		// 입력으로 받은 문자
+	char* curChar;		// 현재 문자
+	char prevChar;		// 이전 입력 문자
+};
+
+// D 커맨드
+class CommandD : public ICommand
+{
+public:
+	CommandD(char ch, char* curChar)
+		: inputChar(ch), curChar(curChar), prevChar(*curChar)
+	{
+	}
+
+	// 현재 문자를 입력으로 받은 문자로 초기화
+	void Execute() override
+	{
+		*curChar = inputChar;
+	}
+
+	// 현재 문자를 이전 입력 문자로 초기화
+	void Undo() override
+	{
+		*curChar = prevChar;
+	}
+
+	// 입력으로 받은 문자 반환
+	char GetChar() const override
+	{
+		return inputChar;
+	}
+
+private:
+	char inputChar;		// 입력으로 받은 문자
+	char* curChar;		// 현재 문자
+	char prevChar;		// 이전 입력 문자
+};
+
+// E 커맨드
+class CommandE : public ICommand
+{
+public:
+	CommandE(char ch, char* curChar)
+		: inputChar(ch), curChar(curChar), prevChar(*curChar)
+	{
+	}
+
+	// 현재 문자를 입력으로 받은 문자로 초기화
+	void Execute() override
+	{
+		*curChar = inputChar;
+	}
+
+	// 현재 문자를 이전 입력 문자로 초기화
+	void Undo() override
+	{
+		*curChar = prevChar;
+	}
+
+	// 입력으로 받은 문자 반환
+	char GetChar() const override
+	{
+		return inputChar;
+	}
+
+private:
+	char inputChar;		// 입력으로 받은 문자
+	char* curChar;		// 현재 문자
+	char prevChar;		// 이전 입력 문자
+};
+
+// 커맨드 명령어 실행 클래스
 class CommandManager
 {
 public:
@@ -77,9 +204,9 @@ public:
 		}
 	}
 
-	void ExecuteCommand(Command* command)
+	void ExecuteCommand(ICommand* command)
 	{
-		// redo 스택 초기화
+		// redo 스택 초기화 (새로운 입력 커맨드가 들어왔으므로)
 		while (!redoStack.Empty())
 		{
 			delete redoStack.Top();
@@ -94,7 +221,7 @@ public:
 	{
 		if (undoStack.Empty()) return;
 
-		Command* command = undoStack.Top();
+		ICommand* command = undoStack.Top();
 		undoStack.Pop();
 
 		command->Undo();
@@ -105,7 +232,7 @@ public:
 	{
 		if (redoStack.Empty()) return;
 
-		Command* command = redoStack.Top();
+		ICommand* command = redoStack.Top();
 		redoStack.Pop();
 
 		command->Execute();
@@ -151,10 +278,10 @@ public:
 
 private:
 	// Undo 스택
-	Stack<Command*> undoStack;
+	Stack<ICommand*> undoStack;
 
 	// Rndo 스택
-	Stack<Command*> redoStack;
+	Stack<ICommand*> redoStack;
 
 	// 현재 문자
 	char* currentChar;
@@ -175,12 +302,6 @@ public:
 		delete commandManager;
 	}
 
-	// 유효한 입력 문자인지 확인하는 함수
-	bool IsValidInput(char& ch) const
-	{
-		return (ch == 'A' || ch == 'B' || ch == 'C' || ch == 'D' || ch == 'E');
-	}
-
 	// 입력에 대한 프로세스 수행하는 함수
 	void ProcessInput(const char* input)
 	{
@@ -194,18 +315,22 @@ public:
 			// 소문자면 대문자로 변환
 			char ch = toupper(input[0]);
 
-			// 유효하지 않은 문자 예외 처리
-			if (!IsValidInput(ch))
+			// 입력 처리를 할 커맨드
+			ICommand* command = nullptr;
+
+			switch (ch)
 			{
-				std::cout << "잘못된 입력입니다. A, B, C, D, E만 입력하세요." << "\n\n";
-				return;
+			case 'A': command = new CommandA(ch, &currentChar); break;
+			case 'B': command = new CommandB(ch, &currentChar); break;
+			case 'C': command = new CommandC(ch, &currentChar); break;
+			case 'D': command = new CommandD(ch, &currentChar); break;
+			case 'E': command = new CommandE(ch, &currentChar); break;
+
+			default: std::cout << "잘못된 입력입니다. A, B, C, D, E만 입력하세요." << "\n\n";
 			}
 
-			// 입력 큐에 입력 프로세스를 수행할 문자 저장
-			inputQueue.Push(ch);
-
-			// 
-			Command* command = new InputCommand(ch, &currentChar);
+			// 입력 커맨드 기록 저장
+			inputCommandQueue.Push(command);
 
 			// 해당 문자에 대한 커맨드 실행
 			commandManager->ExecuteCommand(command);
@@ -213,33 +338,15 @@ public:
 		else std::cout << "잘못된 입력입니다. A, B, C, D, E만 입력하세요." << "\n\n";
 	}
 
-	void Run()
-	{
-		while (true)
-		{
-			std::cout << "문자를 입력해 주세요. (A, B, C, D, E) (종료는 '0')" << "\n";
-			std::cout << "명령어: 'undo', 'redo', 'show'" << "\n";
-			std::cout << "현재 문자: " << currentChar << "\n";
-			std::cout << "> ";
-
-			char inputBuffer[100];
-			std::cin >> inputBuffer;
-			system("cls");
-
-			// 0이 입력으로 들어오면 프로그램 종료
-			if (inputBuffer[0] == '0') break;
-
-			// 입력에 대한 프로세스 수행
-			ProcessInput(inputBuffer);
-		}
-	}
+	// 현재 문자 반환
+	char GetCurrentChar() const { return currentChar; }
 
 private:
 	// 현재 문자
 	char currentChar;
 
-	// 입력 큐
-	Queue<char> inputQueue;
+	// 입력 커맨드 기록을 저장하는 큐
+	Queue<ICommand*> inputCommandQueue;
 
 	// 입력 처리 커맨드 
 	CommandManager* commandManager;
@@ -249,6 +356,27 @@ int main()
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
-	UndoRedoProgram program;
-	program.Run();
+	// Undo/Redo 프로그램 객체 동적할당
+	UndoRedoProgram* program = new UndoRedoProgram();
+
+	while (true)
+	{
+		std::cout << "문자를 입력해 주세요. (A, B, C, D, E) (종료는 '0')" << "\n";
+		std::cout << "명령어: 'undo', 'redo', 'show'" << "\n";
+		std::cout << "현재 문자: " << program->GetCurrentChar() << "\n";
+		std::cout << "> ";
+
+		char inputBuffer[100];
+		std::cin >> inputBuffer;
+		system("cls");
+
+		// 0이 입력으로 들어오면 프로그램 종료
+		if (inputBuffer[0] == '0') break;
+
+		// 입력에 대한 프로세스 수행
+		program->ProcessInput(inputBuffer);
+	}
+
+	// 메모리 해제
+	delete program;
 }
